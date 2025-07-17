@@ -1,17 +1,18 @@
-#include <iostream>
-#include <string>
-#include <cstdlib>
-#include <ctime>
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#include <curl/curl.h>
+#include <iostream>              // для cout, cerr
+#include <string>                // для string
+#include <cstdlib>               // для rand()
+#include <ctime>                 // для time()
+#include <winsock2.h>            // для сокетів
+#include <ws2tcpip.h>            // для роботи з IP
+#include <curl/curl.h>           // для HTTP-запитів
 
-#pragma comment(lib, "ws2_32.lib")
+#pragma comment(lib, "ws2_32.lib")  // бібліотека сокетів
 
 std::string getDogImageUrl() {
     CURL* curl;
     CURLcode res;
-    std::string data;
+    std::string data;  // сюди запишеться JSON-відповідь
+
     curl = curl_easy_init();
     if (curl) {
         curl_easy_setopt(curl, CURLOPT_URL, "https://dog.ceo/api/breeds/image/random");
@@ -23,6 +24,7 @@ std::string getDogImageUrl() {
         res = curl_easy_perform(curl);
         curl_easy_cleanup(curl);
     }
+
     size_t start = data.find("\"message\":\"");
     if (start == std::string::npos) return "";
     start += 11;
@@ -32,23 +34,30 @@ std::string getDogImageUrl() {
 }
 
 int main() {
-    srand(static_cast<unsigned int>(time(0)));
+    srand(static_cast<unsigned int>(time(0)));   // рандом для вибору кота/пса
+
     WSADATA wsaData;
-    WSAStartup(MAKEWORD(2, 2), &wsaData);
-    SOCKET serverSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    WSAStartup(MAKEWORD(2, 2), &wsaData);        // запускаємо сокети
+
+    SOCKET serverSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);  // TCP-сервер
     sockaddr_in serverAddr{};
     serverAddr.sin_family = AF_INET;
-    serverAddr.sin_port = htons(5000);
-    serverAddr.sin_addr.s_addr = INADDR_ANY;
-    bind(serverSocket, (SOCKADDR*)&serverAddr, sizeof(serverAddr));
-    listen(serverSocket, SOMAXCONN);
+    serverAddr.sin_port = htons(5000);          // порт
+    serverAddr.sin_addr.s_addr = INADDR_ANY;    // слухаємо всі інтерфейси
+
+    bind(serverSocket, (SOCKADDR*)&serverAddr, sizeof(serverAddr));  // прив’язка до адреси
+    listen(serverSocket, SOMAXCONN);                                 // слухаємо
+
     while (true) {
-        SOCKET clientSocket = accept(serverSocket, NULL, NULL);
+        SOCKET clientSocket = accept(serverSocket, NULL, NULL);     // чекаємо клієнта
+
         std::string imageUrl = (rand() % 2 == 0) ? "https://cataas.com/cat" : getDogImageUrl();
+
         if (!imageUrl.empty()) {
             CURL* curl;
             CURLcode res;
             std::string imageData;
+
             curl = curl_easy_init();
             if (curl) {
                 curl_easy_setopt(curl, CURLOPT_URL, imageUrl.c_str());
@@ -56,15 +65,4 @@ int main() {
                     ((std::string*)userp)->append((char*)contents, size * nmemb);
                     return size * nmemb;
                 });
-                curl_easy_setopt(curl, CURLOPT_WRITEDATA, &imageData);
-                res = curl_easy_perform(curl);
-                curl_easy_cleanup(curl);
-            }
-            send(clientSocket, imageData.c_str(), static_cast<int>(imageData.size()), 0);
-        }
-        closesocket(clientSocket);
-    }
-    closesocket(serverSocket);
-    WSACleanup();
-    return 0;
-}
+                curl_easy_set
